@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { initializeSelectionRef, getScriptById, initializeMaintenanceData } from './chatbotScript';
+import { chatbotScript, getScriptById, initializeMaintenanceData } from './chatbotScript';
 import Message from './../Message/Message';
 import OptionButton from './../OptionButton/OptionButton';
 import ThemeToggle from './../ThemeToggle/ThemeToggle';
@@ -9,23 +9,42 @@ const Chatbot = () => {
   const [currentScriptId, setCurrentScriptId] = useState('start');
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const messagesEndRef = useRef(null);
-  const selectionRef = useRef({
+  const [currentSelection, setCurrentSelection] = useState({
     brand: null,
     category: null,
     department: null,
     subDepartment: null
   });
-  const [forceUpdate, setForceUpdate] = useState(0); // To force re-render when needed
+  const messagesEndRef = useRef(null);
 
   const handleOptionClick = (option) => {
+    // Update selection based on the current script ID
+    const updateSelection = () => {
+      if (currentScriptId === 'start') {
+        setCurrentSelection(prev => ({ ...prev, brand: option.text }));
+      } else if (currentScriptId.startsWith('category_')) {
+        setCurrentSelection(prev => ({ ...prev, category: option.text }));
+      } else if (currentScriptId.startsWith('department_')) {
+        setCurrentSelection(prev => ({ ...prev, department: option.text }));
+      } else if (currentScriptId.startsWith('subdepartment_')) {
+        setCurrentSelection(prev => ({ ...prev, subDepartment: option.text }));
+      }
+    };
+
+    // Don't update selection if it's a "Back" option
+    if (!option.text.startsWith('Back')) {
+      updateSelection();
+    }
+
     // Add current message and user's choice to history
     const currentScript = getScriptById(currentScriptId);
     const newHistory = [
       ...conversationHistory,
       {
         type: 'bot',
-        message: currentScript.message,
+        message: typeof currentScript.message === 'function' 
+          ? currentScript.message(currentSelection) 
+          : currentScript.message,
         timestamp: new Date()
       },
       {
@@ -36,27 +55,24 @@ const Chatbot = () => {
     ];
 
     setConversationHistory(newHistory);
-    setCurrentScriptId(option.nextId);
+    const nextId = typeof option.nextId === 'function' ? option.nextId(currentSelection) : option.nextId;
+    setCurrentScriptId(nextId);
   };
 
   const resetConversation = () => {
     setCurrentScriptId('start');
     setConversationHistory([]);
-    // Reset selection state
-    selectionRef.current = {
+    setCurrentSelection({
       brand: null,
       category: null,
       department: null,
       subDepartment: null
-    };
-    setForceUpdate(prev => prev + 1);
+    });
   };
 
-  // Initialize maintenance data and selection ref when component mounts
+  // Initialize maintenance data when component mounts
   useEffect(() => {
     const initialize = async () => {
-      // Initialize the selection reference
-      initializeSelectionRef(selectionRef, setForceUpdate);
       await initializeMaintenanceData();
       setIsInitialized(true);
     };
@@ -95,7 +111,7 @@ const Chatbot = () => {
         {/* Current bot message */}
         <Message
           type="bot"
-          message={currentScript.message}
+          message={typeof currentScript.message === 'function' ? currentScript.message(currentSelection) : currentScript.message}
           timestamp={new Date()}
         />
         

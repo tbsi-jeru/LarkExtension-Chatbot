@@ -8,7 +8,7 @@ const Message = ({ type, message, timestamp }) => {
   return (
     <div className={`message ${type === 'bot' ? 'bot-message' : 'user-message'}`}>
       <div className="message-content">
-        <div className="message-text">{message}</div>
+        <div className="message-text" style={{ whiteSpace: 'pre-line' }}>{message}</div>
         <div className="message-time">{formatTime(timestamp)}</div>
       </div>
     </div>
