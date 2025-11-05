@@ -1,14 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import { chatbotScript, getScriptById } from './chatbotScript';
-import Message from './Message';
-import OptionButton from './OptionButton';
-import ThemeToggle from './ThemeToggle';
+import { initializeSelectionRef, getScriptById, initializeMaintenanceData } from './chatbotScript';
+import Message from './../Message/Message';
+import OptionButton from './../OptionButton/OptionButton';
+import ThemeToggle from './../ThemeToggle/ThemeToggle';
 import './Chatbot.css';
 
 const Chatbot = () => {
   const [currentScriptId, setCurrentScriptId] = useState('start');
   const [conversationHistory, setConversationHistory] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   const messagesEndRef = useRef(null);
+  const selectionRef = useRef({
+    brand: null,
+    category: null,
+    department: null,
+    subDepartment: null
+  });
+  const [forceUpdate, setForceUpdate] = useState(0); // To force re-render when needed
 
   const handleOptionClick = (option) => {
     // Add current message and user's choice to history
@@ -34,7 +42,26 @@ const Chatbot = () => {
   const resetConversation = () => {
     setCurrentScriptId('start');
     setConversationHistory([]);
+    // Reset selection state
+    selectionRef.current = {
+      brand: null,
+      category: null,
+      department: null,
+      subDepartment: null
+    };
+    setForceUpdate(prev => prev + 1);
   };
+
+  // Initialize maintenance data and selection ref when component mounts
+  useEffect(() => {
+    const initialize = async () => {
+      // Initialize the selection reference
+      initializeSelectionRef(selectionRef, setForceUpdate);
+      await initializeMaintenanceData();
+      setIsInitialized(true);
+    };
+    initialize();
+  }, []);
 
   // Auto-scroll to bottom when conversation changes
   useEffect(() => {

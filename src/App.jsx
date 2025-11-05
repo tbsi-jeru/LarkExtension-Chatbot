@@ -1,12 +1,11 @@
-import { ThemeProvider } from './ThemeContext';
-import Chatbot from './Chatbot'
-import './App.css'
+import { ThemeProvider } from './context/ThemeContext';
+import Chatbot from './components/Chatbot/Chatbot'
+import './styles/App.css';
 
 function App() {
   return (
     <ThemeProvider>
       <div className="App">
-        <h1>Lark Extension Chatbot</h1>
         <Chatbot />
       </div>
     </ThemeProvider>
