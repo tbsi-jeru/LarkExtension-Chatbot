@@ -18,7 +18,7 @@ const Chatbot = () => {
   const messagesEndRef = useRef(null);
 
   const handleOptionClick = (option) => {
-    // Update selection based on the current script ID
+    // Update selection based on the curren t script ID
     const updateSelection = () => {
       if (currentScriptId === 'start') {
         setCurrentSelection(prev => ({ ...prev, brand: option.text }));
@@ -93,7 +93,7 @@ const Chatbot = () => {
         <div className="header-controls">
           <ThemeToggle />
           <button onClick={resetConversation} className="reset-button">
-            Start Over
+            Clear
           </button>
         </div>
       </div>

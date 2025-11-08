@@ -9,37 +9,46 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  /* Dark theme (default) */
-  --bg-primary: #0D0D0D;
-  --bg-secondary: #2A2A2A;
-  --bg-tertiary: #1A1A1A;
-  --text-primary: #EAEAEA;
-  --text-secondary: #6C757D;
-  --accent-primary: #3A6EA5;
-  --accent-secondary: #20C997;
-  --accent-tertiary: #6C757D;
-  --border-color: #2A2A2A;
+  /* Base theme (light) */
+  --progressive-green: #37A533;
+  --vanguard-green: #1E651C;
+  --resolute-black: #111613;
+  --infinite-white: #F9F9F9;
+
+  /* Derived color tokens */
+  --bg-primary: var(--infinite-white);
+  --bg-secondary: #F1F1F1;
+  --bg-tertiary: #EAEAEA;
+
+  --text-primary: var(--resolute-black);
+  --text-secondary: #333333;
+
+  --accent-primary: var(--progressive-green);
+  --accent-secondary: var(--vanguard-green);
+
+  --border-color: #DCDCDC;
   --error-color: #D9534F;
-  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-color: rgba(17, 22, 19, 0.15);
 }
 
-[data-theme="light"] {
-  /* Light theme */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F8F9FA;
-  --bg-tertiary: #E9ECEF;
-  --text-primary: #212529;
-  --text-secondary: #6C757D;
-  --accent-primary: #3A6EA5;
-  --accent-secondary: #20C997;
-  --accent-tertiary: #6C757D;
-  --border-color: #DEE2E6;
-  --error-color: #D9534F;
-  --shadow-color: rgba(0, 0, 0, 0.1);
+[data-theme="dark"] {
+  /* Dark variant */
+  --bg-primary: var(--resolute-black);
+  --bg-secondary: #1C1F1C;
+  --bg-tertiary: #2C2E2B;
+
+  --text-primary: var(--infinite-white);
+  --text-secondary: #BDBDBD;
+
+  --accent-primary: var(--progressive-green);
+  --accent-secondary: var(--vanguard-green);
+
+  --border-color: #2E2E2E;
+  --shadow-color: rgba(0, 0, 0, 0.4);
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
   color: var(--text-primary);
   background-color: var(--bg-primary);
 }
@@ -47,7 +56,7 @@
 a {
   font-weight: 500;
   color: var(--accent-primary);
-  text-decoration: inherit;
+  text-decoration: none;
 }
 a:hover {
   color: var(--accent-secondary);
@@ -57,11 +66,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  color: var(--text-primary);
 }
 
 button {
@@ -71,16 +83,15 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
+  background-color: var(--accent-primary);
+  color: var(--infinite-white);
   cursor: pointer;
   transition: all 0.25s;
 }
 button:hover {
-  border-color: var(--accent-primary);
-  background-color: var(--accent-primary);
+  background-color: var(--accent-secondary);
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto var(--accent-secondary);
+  outline: 3px solid var(--vanguard-green);
 }

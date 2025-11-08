@@ -13,7 +13,7 @@ const ThemeToggle = () => {
     >
       <div className={`toggle-slider ${isDarkMode ? 'dark' : 'light'}`}>
         <div className="toggle-icon">
-          {isDarkMode ? '🌙' : '☀️'}
+          {isDarkMode ? 'Dark Mode' : 'Light Mode'}
         </div>
       </div>
     </button>

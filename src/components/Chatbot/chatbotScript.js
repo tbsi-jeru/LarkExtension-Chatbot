@@ -1,7 +1,10 @@
-import { getMaintenanceData, processMaintenanceData } from '../../api/maintenanceEndpoints';
+import { getMaintenanceData, processMaintenanceData, generateDesign } from '../../api/maintenanceEndpoints';
 
 // Initialize maintenance data
 let maintenanceData = {};
+
+// Track the last selection for design generation
+let lastSelection = null;
 
 // Chatbot script data structure - minimal initial state
 export const chatbotScript = {
@@ -77,6 +80,8 @@ export const updateChatbotScript = () => {
             if (!selection) {
                 return "Error: No selection data available";
             }
+            // Store the selection for design generation
+            lastSelection = selection;
             return `Your selections:
             
 Brand: ${selection.brand}
@@ -87,6 +92,22 @@ Sub-Department: ${selection.subDepartment}
 What would you like to do next?`;
         },
         options: [
+            { 
+                text: "Generate Design", 
+                nextId: "generating_design",
+                action: async () => {
+                    try {
+                        if (!lastSelection) {
+                            throw new Error('No selection data available');
+                        }
+                        const design = await generateDesign(lastSelection);
+                        return design;
+                    } catch (error) {
+                        console.error('Error generating design:', error);
+                        throw error;
+                    }
+                }
+            },
             { text: "Start New Search", nextId: "start" },
             { 
                 text: "Back to Sub-Departments", 
@@ -97,6 +118,15 @@ What would you like to do next?`;
                     return `subdepartment_${selection.brand}_${selection.category}_${selection.department}`;
                 }
             }
+        ]
+    };
+
+    // Add generating design node
+    chatbotScript.generating_design = {
+        id: 'generating_design',
+        message: "Your design is being generated...",
+        options: [
+            { text: "Start New Search", nextId: "start" }
         ]
     };
 };

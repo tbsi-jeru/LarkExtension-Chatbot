@@ -1,5 +1,15 @@
 import { apiClient } from './axiosConfig';
 
+export const generateDesign = async (selectionData) => {
+    try {
+        const response = await apiClient.post('/db/generate-design', selectionData);
+        return response;
+    } catch (error) {
+        console.error('Error generating design:', error);
+        throw error;
+    }
+};
+
 export const getMaintenanceData = async () => {
     try {
         const data = await apiClient.get('/db/maintenance');
