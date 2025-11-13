@@ -1,17 +1,31 @@
-import { getMaintenanceData, processMaintenanceData, generateDesign } from '../../api/maintenanceEndpoints';
+import { getMaintenanceData, processMaintenanceData } from '../../api/maintenanceEndpoints';
 
 // Initialize maintenance data
 let maintenanceData = {};
 
-// Track the last selection for design generation
-let lastSelection = null;
-
 // Chatbot script data structure - minimal initial state
 export const chatbotScript = {
-    start: {
-        id: 'start',
+    brand: {
+        id: 'brand',
         message: "Hello! I'm your DeeDee assistant. Please select a brand to start:",
         options: [] // Will be populated by updateChatbotScript
+    },
+    datepicker: {
+        id: 'datepicker',
+        message: "When do you plan to release the new designs?:",
+        type: 'datepicker',
+        nextId: 'number_of_designs'
+    },
+    number_of_designs: {
+        id: 'number_of_designs',
+        message: "How many base designs would you like to generate?",
+        options: [
+            { text: "1 Design", nextId: "result" },
+            { text: "2 Designs", nextId: "result" },
+            { text: "3 Designs", nextId: "result" },
+            { text: "4 Designs", nextId: "result" },
+            { text: "5 Designs", nextId: "result" }
+        ]
     }
 };
 
@@ -31,8 +45,8 @@ export const initializeMaintenanceData = async () => {
 
 // Function to update chatbot script with maintenance data
 export const updateChatbotScript = () => {
-    // Reset start options with available brands
-    chatbotScript.start.options = Object.keys(maintenanceData).map(brand => ({
+    // Reset brand options with available brands
+    chatbotScript.brand.options = Object.keys(maintenanceData).map(brand => ({
         text: brand,
         nextId: `category_${brand}`
     }));
@@ -45,7 +59,7 @@ export const updateChatbotScript = () => {
             options: Object.keys(brandData.categories).map(category => ({
                 text: category,
                 nextId: `department_${brand}_${category}`
-            })).concat({ text: "Back to brands", nextId: "start" })
+            })).concat({ text: "Back to brands", nextId: "brand" })
         };
 
         // Create department nodes for each category
@@ -66,7 +80,7 @@ export const updateChatbotScript = () => {
                     message: `Select a sub-department for ${department}:`,
                     options: departmentData.subDepartments.map(subDepartment => ({
                         text: subDepartment,
-                        nextId: "result"
+                        nextId: "datepicker"
                     })).concat({ text: "Back to departments", nextId: `department_${brand}_${category}` })
                 };
             });
@@ -80,10 +94,9 @@ export const updateChatbotScript = () => {
             if (!selection) {
                 return "Error: No selection data available";
             }
-            // Store the selection for design generation
-            lastSelection = selection;
             return `Your selections:
-            
+Target Release Date: ${selection.date}
+Number of Designs: ${selection.numBaseDesigns || 'Not specified'}
 Brand: ${selection.brand}
 Category: ${selection.category}
 Department: ${selection.department}
@@ -94,44 +107,43 @@ What would you like to do next?`;
         options: [
             { 
                 text: "Generate Design", 
-                nextId: "generating_design",
-                action: async () => {
-                    try {
-                        if (!lastSelection) {
-                            throw new Error('No selection data available');
-                        }
-                        const design = await generateDesign(lastSelection);
-                        return design;
-                    } catch (error) {
-                        console.error('Error generating design:', error);
-                        throw error;
-                    }
-                }
+                nextId: "generating_design"
             },
-            { text: "Start New Search", nextId: "start" },
+            { text: "Start New Search", nextId: "brand" },
             { 
-                text: "Back to Sub-Departments", 
-                nextId: (selection) => {
-                    if (!selection || !selection.brand || !selection.category || !selection.department) {
-                        return "start";
-                    }
-                    return `subdepartment_${selection.brand}_${selection.category}_${selection.department}`;
-                }
+                text: "Back to Number of Designs", 
+                nextId: "number_of_designs"
             }
         ]
     };
 
-    // Add generating design node
-    chatbotScript.generating_design = {
-        id: 'generating_design',
-        message: "Your design is being generated...",
+    // Add design complete node
+    chatbotScript.design_complete = {
+        id: 'design_complete',
+        message: "What would you like to do next?",
         options: [
-            { text: "Start New Search", nextId: "start" }
+            { text: "Start New Search", nextId: "brand" },
+            { text: "Add to Lark", nextId: "brand" },
+        ]
+    };
+
+    // Add design error node
+    chatbotScript.design_error = {
+        id: 'design_error',
+        message: "Would you like to try again?",
+        options: [
+            { text: "Generate Design Again", nextId: "result" },
+            { text: "Start New Search", nextId: "brand" }
         ]
     };
 };
 
 // Helper function to get script by ID
 export const getScriptById = (id) => {
-    return chatbotScript[id] || chatbotScript.start;
+    return chatbotScript[id] || chatbotScript.brand;
+};
+
+// Helper function to get brand description
+export const getBrandDescription = (brandName) => {
+    return maintenanceData[brandName]?.description || '';
 };

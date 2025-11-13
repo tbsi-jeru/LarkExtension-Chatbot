@@ -1,0 +1,39 @@
+.datepicker-message-container {
+  display: flex;
+  justify-content: flex-start;
+  margin: 10px 0;
+  padding: 0 10px;
+}
+
+.datepicker-message {
+  background-color: var(--bot-message-bg, #f0f0f0);
+  color: var(--bot-message-text, #333);
+  border-radius: 12px;
+  padding: 15px;
+  max-width: 70%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+.datepicker-message-text {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark theme support */
+[data-theme="dark"] .datepicker-message {
+  background-color: var(--bot-message-bg, #2a2a2a);
+  color: var(--bot-message-text, #e0e0e0);
+}

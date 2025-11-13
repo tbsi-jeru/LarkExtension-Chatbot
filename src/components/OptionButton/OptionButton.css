@@ -28,3 +28,19 @@
   /* border-color: var(--accent-secondary);
   box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.2); */
 }
+
+.option-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  transform: none;
+  box-shadow: none;
+}
+
+.option-button:disabled:hover {
+  border-color: var(--border-color);
+  background: var(--bg-secondary);
+  transform: none;
+  box-shadow: none;
+}

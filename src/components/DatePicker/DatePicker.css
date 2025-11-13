@@ -1,0 +1,122 @@
+/* src/components/DatePicker/DatePicker.css */
+.datepicker-container {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.datepicker-wrapper {
+  position: relative;
+  width:25%;
+}
+
+.datepicker-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.datepicker-input:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(55, 165, 51, 0.1);
+}
+
+.datepicker-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(55, 165, 51, 0.15);
+}
+
+/* Style the calendar icon for webkit browsers */
+.datepicker-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.datepicker-input::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(55, 165, 51, 0.1);
+}
+
+/* Dark mode calendar icon */
+[data-theme="dark"] .datepicker-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Style for when date is selected */
+.datepicker-input:valid {
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
+}
+
+.datepicker-submit {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  letter-spacing: 0.025em;
+}
+
+.datepicker-submit:hover:not(:disabled) {
+  background: var(--accent-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 165, 51, 0.3);
+}
+
+.datepicker-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.datepicker-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(55, 165, 51, 0.2);
+}
+
+.datepicker-submit:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(55, 165, 51, 0.3);
+}
+
+/* Responsive adjustments */
+@media (min-width: 600px) {
+  .datepicker-container {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .datepicker-wrapper {
+    flex: 1;
+  }
+
+  .datepicker-submit {
+    width: auto;
+    min-width: 150px;
+  }
+}
