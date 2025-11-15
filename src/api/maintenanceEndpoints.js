@@ -55,39 +55,39 @@ export const processMaintenanceData = (data) => {
 
     // Create hierarchical structure
     data.forEach(item => {
-        const { Brand, Category, Department, SubDepartment, BrandDesc } = item;
+        const { U_Brand, Name, U_Department, U_Sub_Department, BrandDesc } = item;
         
         // Initialize brand if it doesn't exist
-        if (!structure[Brand]) {
-            structure[Brand] = {
+        if (!structure[U_Brand]) {
+            structure[U_Brand] = {
                 description: BrandDesc || '',
                 categories: {}
             };
         }
 
         // Initialize category if it doesn't exist
-        if (!structure[Brand].categories[Category]) {
-            structure[Brand].categories[Category] = {
+        if (!structure[U_Brand].categories[Name]) {
+            structure[U_Brand].categories[Name] = {
                 departments: {}
             };
         }
 
         // Initialize department if it doesn't exist
-        if (!structure[Brand].categories[Category].departments[Department]) {
-            structure[Brand].categories[Category].departments[Department] = {
+        if (!structure[U_Brand].categories[Name].departments[U_Department]) {
+            structure[U_Brand].categories[Name].departments[U_Department] = {
                 subDepartments: new Set()
             };
         }
 
         // Add subDepartment
-        structure[Brand].categories[Category].departments[Department].subDepartments.add(SubDepartment);
+        structure[U_Brand].categories[Name].departments[U_Department].subDepartments.add(U_Sub_Department);
     });
 
     // Convert Sets to arrays and create final structure
-    return Object.entries(structure).reduce((acc, [brand, brandData]) => {
-        acc[brand] = {
-            description: brandData.description,
-            categories: Object.entries(brandData.categories).reduce((catAcc, [category, categoryData]) => {
+    return Object.entries(structure).reduce((acc, [U_Brand, U_BrandData]) => {
+        acc[U_Brand] = {
+            description: U_BrandData.description,
+            categories: Object.entries(U_BrandData.categories).reduce((catAcc, [category, categoryData]) => {
                 catAcc[category] = {
                     departments: Object.entries(categoryData.departments).reduce((deptAcc, [department, departmentData]) => {
                         deptAcc[department] = {

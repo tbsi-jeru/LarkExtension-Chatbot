@@ -3,6 +3,7 @@ import { chatbotScript, getScriptById, initializeMaintenanceData, getBrandDescri
 import { generateDesign, tweakDesign, postDesign } from '../../api/maintenanceEndpoints';
 import Message from './../Message/Message';
 import DatePickerMessage from './../DatePickerMessage/DatePickerMessage';
+import NumberInputMessage from './../NumberInputMessage/NumberInputMessage';
 import OptionButton from './../OptionButton/OptionButton';
 import ThemeToggle from './../ThemeToggle/ThemeToggle';
 import './Chatbot.css';
@@ -14,6 +15,7 @@ const Chatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentViewedImageUrl, setCurrentViewedImageUrl] = useState(null);
   const [currentDesignContext, setCurrentDesignContext] = useState(null); // { baseDesignIndex, variationIndex }
+  const [currentDesignMetadata, setCurrentDesignMetadata] = useState(null); // Store metadata from API response
   const [addedToLarkImages, setAddedToLarkImages] = useState(new Set());
   const [currentSelection, setCurrentSelection] = useState({
     date: null,
@@ -21,7 +23,8 @@ const Chatbot = () => {
     category: null,
     department: null,
     subDepartment: null,
-    numBaseDesigns: null
+    numBaseDesigns: null,
+    numVariationsPerBase: null
   }); 
   const messagesEndRef = useRef(null);
 
@@ -29,13 +32,29 @@ const Chatbot = () => {
     // Update selection based on the current script ID
     const updateSelection = () => {
       if (currentScriptId === 'brand') {
-        setCurrentSelection(prev => ({ ...prev, brand: option.text }));
+        if (option.text.startsWith('Skip')) {
+          setCurrentSelection(prev => ({ ...prev, brand: null }));
+        } else {
+          setCurrentSelection(prev => ({ ...prev, brand: option.text }));
+        }
       } else if (currentScriptId.startsWith('category_')) {
-        setCurrentSelection(prev => ({ ...prev, category: option.text }));
+        if (option.text.startsWith('Skip')) {
+          setCurrentSelection(prev => ({ ...prev, category: null }));
+        } else {
+          setCurrentSelection(prev => ({ ...prev, category: option.text }));
+        }
       } else if (currentScriptId.startsWith('department_')) {
-        setCurrentSelection(prev => ({ ...prev, department: option.text }));
+        if (option.text.startsWith('Skip')) {
+          setCurrentSelection(prev => ({ ...prev, department: null }));
+        } else {
+          setCurrentSelection(prev => ({ ...prev, department: option.text }));
+        }
       } else if (currentScriptId.startsWith('subdepartment_')) {
-        setCurrentSelection(prev => ({ ...prev, subDepartment: option.text }));
+        if (option.text.startsWith('Skip')) {
+          setCurrentSelection(prev => ({ ...prev, subDepartment: null }));
+        } else {
+          setCurrentSelection(prev => ({ ...prev, subDepartment: option.text }));
+        }
       } else if (currentScriptId === 'number_of_designs') {
         // Extract number from text like "3 Designs" -> 3
         const number = parseInt(option.text.split(' ')[0]);
@@ -85,6 +104,7 @@ const Chatbot = () => {
         const selectionJSON = {
           targetReleaseDate: currentSelection.date,
           numBaseDesigns: currentSelection.numBaseDesigns,
+          numVariationsPerBase: currentSelection.numVariationsPerBase,
           brand: currentSelection.brand,
           brandDescription: brandDescription,
           category: currentSelection.category,
@@ -143,6 +163,12 @@ const Chatbot = () => {
         
         console.log('Final images array:', images);
         console.log('Final designs structure:', designs);
+        
+        // Store metadata from API response for later use (e.g., posting to Lark)
+        if (designResult?.metadata) {
+          setCurrentDesignMetadata(designResult.metadata);
+          console.log('Stored design metadata:', designResult.metadata);
+        }
         
         if ((images && images.length > 0) || designs) {
           // Add success message with image(s) to history
@@ -219,18 +245,54 @@ const Chatbot = () => {
       // Handle Add to Lark action
       setIsLoading(true);
       try {
-        // Prepare data to send to Lark
-        const larkData = {
-          "Target Release Date": currentSelection.date,
-          "brand": currentSelection.brand,
-          "category": currentSelection.category,
-          "department": currentSelection.department,
-          "subDepartment": currentSelection.subDepartment,
-          "numberOfDesigns": currentSelection.numBaseDesigns,
-          "baseDesignIndex": currentDesignContext?.baseDesignIndex,
-          "variationIndex": currentDesignContext?.variationIndex,
-          "imageUrl": currentViewedImageUrl
-        };
+        // Find dominant color for the currently viewed image
+        let dominantColor = null;
+        
+        // Search through conversation history to find the image metadata
+        for (let i = conversationHistory.length - 1; i >= 0; i--) {
+          const entry = conversationHistory[i];
+          if (entry.imageMetadata && Array.isArray(entry.imageMetadata)) {
+            // Find the specific image in metadata
+            const imageData = entry.imageMetadata.find(img => img.url === currentViewedImageUrl);
+            if (imageData && imageData.dominantColor) {
+              dominantColor = imageData.dominantColor;
+              console.log('Found dominant color for current image:', dominantColor);
+              break;
+            }
+          }
+        }
+        
+        // Use stored metadata from API response if available, otherwise fall back to currentSelection
+        let larkData;
+        
+        if (currentDesignMetadata) {
+          // Use metadata from the API response (more accurate - includes O1's selections)
+          console.log('Using stored design metadata for Lark upload');
+          larkData = {
+            targetReleaseDate: currentDesignMetadata.targetReleaseDate,  // ISO 8601 format
+            brand: currentDesignMetadata.brand,
+            brandDescription: currentDesignMetadata.brandDescription,
+            category: currentDesignMetadata.category,
+            department: currentDesignMetadata.department,
+            subDepartment: currentDesignMetadata.subDepartment,
+            dominantColor: dominantColor, // Add dominant color for the specific image
+            imageUrl: currentViewedImageUrl
+          };
+        } else {
+          // Fallback to currentSelection (legacy behavior)
+          console.log('No stored metadata found, using currentSelection for Lark upload');
+          const brandDescription = getBrandDescription(currentSelection.brand);
+          larkData = {
+            targetReleaseDate: currentSelection.date,  // ISO 8601 format
+            brand: currentSelection.brand,
+            brandDescription: brandDescription,
+            category: currentSelection.category,
+            department: currentSelection.department,
+            subDepartment: currentSelection.subDepartment,
+            dominantColor: dominantColor, // Add dominant color for the specific image
+            imageUrl: currentViewedImageUrl
+          };
+        }
         
         console.log('Sending data to Lark:', JSON.stringify(larkData, null, 2));
         
@@ -300,7 +362,57 @@ const Chatbot = () => {
 
     setConversationHistory(newHistory);
 
-    // Move to the next step (brand selection)
+    // Move to the next step (number of designs)
+    setCurrentScriptId(currentScript.nextId);
+  };
+
+  const handleNumberSubmit = (number) => {
+    const currentScript = getScriptById(currentScriptId);
+    
+    // Determine which number field we're updating based on current script ID
+    if (currentScriptId === 'number_of_designs') {
+      // Update selection with the number of designs
+      setCurrentSelection(prev => ({ ...prev, numBaseDesigns: number }));
+      
+      // Add messages to history
+      const newHistory = [
+        ...conversationHistory,
+        {
+          type: 'bot',
+          message: currentScript.message,
+          timestamp: new Date()
+        },
+        {
+          type: 'user',
+          message: `${number} design${number !== 1 ? 's' : ''}`,
+          timestamp: new Date()
+        }
+      ];
+      
+      setConversationHistory(newHistory);
+    } else if (currentScriptId === 'number_of_variations') {
+      // Update selection with the number of variations per base
+      setCurrentSelection(prev => ({ ...prev, numVariationsPerBase: number }));
+      
+      // Add messages to history
+      const newHistory = [
+        ...conversationHistory,
+        {
+          type: 'bot',
+          message: currentScript.message,
+          timestamp: new Date()
+        },
+        {
+          type: 'user',
+          message: `${number} variation${number !== 1 ? 's' : ''} per base design`,
+          timestamp: new Date()
+        }
+      ];
+      
+      setConversationHistory(newHistory);
+    }
+
+    // Move to the next step
     setCurrentScriptId(currentScript.nextId);
   };
 
@@ -447,6 +559,7 @@ const Chatbot = () => {
     setCurrentScriptId('brand');
     setConversationHistory([]);
     setCurrentViewedImageUrl(null);
+    setCurrentDesignMetadata(null); // Clear stored metadata
     setAddedToLarkImages(new Set()); // Clear the set of added images
     setCurrentSelection({
       date: null,
@@ -454,7 +567,8 @@ const Chatbot = () => {
       category: null,
       department: null,
       subDepartment: null,
-      numBaseDesigns: null
+      numBaseDesigns: null,
+      numVariationsPerBase: null
     });
   };
 
@@ -507,6 +621,15 @@ const Chatbot = () => {
           <>
             {currentScript.type === 'datepicker' ? (
               <DatePickerMessage onDateSelect={handleDateSelect} />
+            ) : currentScript.type === 'number_input' ? (
+              <NumberInputMessage 
+                onNumberSubmit={handleNumberSubmit}
+                min={currentScript.min}
+                max={currentScript.max}
+                placeholder={currentScript.placeholder}
+                message={currentScript.message}
+                defaultValue={currentScript.defaultValue}
+              />
             ) : (
               <>
                 <Message
@@ -516,16 +639,18 @@ const Chatbot = () => {
                 />
                 
                 {/* Options displayed inside chat */}
-                <div className="chatbot-options-inline">
-                  {currentScript.options.map((option, index) => (
-                    <OptionButton
-                      key={index}
-                      text={option.text}
-                      onClick={() => handleOptionClick(option)}
-                      disabled={option.text === "Add to Lark" && addedToLarkImages.has(currentViewedImageUrl)}
-                    />
-                  ))}
-                </div>
+                {currentScript.options && (
+                  <div className="chatbot-options-inline">
+                    {currentScript.options.map((option, index) => (
+                      <OptionButton
+                        key={index}
+                        text={option.text}
+                        onClick={() => handleOptionClick(option)}
+                        disabled={option.text === "Add to Lark" && addedToLarkImages.has(currentViewedImageUrl)}
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </>

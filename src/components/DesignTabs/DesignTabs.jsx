@@ -40,14 +40,6 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
   const currentDesign = designs[activeTabIndex];
   const variations = currentDesign?.variations || [];
 
-  console.log('DesignTabs state:', { 
-    activeTabIndex, 
-    currentCarouselIndex, 
-    totalDesigns: designs.length,
-    currentDesignVariations: variations.length,
-    designs 
-  });
-
   const goToNextVariation = () => {
     setCurrentCarouselIndex((prev) => {
       const nextIndex = (prev + 1) % variations.length;
@@ -112,8 +104,8 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
             className={`design-tab ${activeTabIndex === index ? 'active' : ''}`}
             onClick={() => setActiveTabIndex(index)}
           >
-            Base Design {index + 1}
-            <span className="variation-count">({design.variations?.length || 0} variations)</span>
+            Design {index + 1}
+            {/* <span className="variation-count">({design.variations?.length || 0} variations)</span> */}
           </button>
         ))}
       </div>

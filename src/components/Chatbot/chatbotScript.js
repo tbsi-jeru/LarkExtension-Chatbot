@@ -18,14 +18,23 @@ export const chatbotScript = {
     },
     number_of_designs: {
         id: 'number_of_designs',
-        message: "How many base designs would you like to generate?",
-        options: [
-            { text: "1 Design", nextId: "result" },
-            { text: "2 Designs", nextId: "result" },
-            { text: "3 Designs", nextId: "result" },
-            { text: "4 Designs", nextId: "result" },
-            { text: "5 Designs", nextId: "result" }
-        ]
+        message: "How many base designs would you like to generate? (Enter a number between 1 and 10)",
+        type: 'number_input',
+        nextId: 'number_of_variations',
+        min: 1,
+        max: 10,
+        defaultValue: 3,
+        placeholder: "Enter number of designs..."
+    },
+    number_of_variations: {
+        id: 'number_of_variations',
+        message: "How many variations would you like for each base design? (Enter a number between 1 and 5)",
+        type: 'number_input',
+        nextId: 'result',
+        min: 1,
+        max: 5,
+        defaultValue: 3,
+        placeholder: "Enter number of variations..."
     }
 };
 
@@ -49,42 +58,283 @@ export const updateChatbotScript = () => {
     chatbotScript.brand.options = Object.keys(maintenanceData).map(brand => ({
         text: brand,
         nextId: `category_${brand}`
-    }));
+    })).concat({ text: "Skip (Any Brand)", nextId: "category_any" });
+
+    // Create "any" category node when brand is skipped
+    chatbotScript.category_any = {
+        id: 'category_any',
+        message: 'Please select a category (or skip to continue):',
+        options: [
+            // Get all unique categories across all brands
+            ...Array.from(new Set(
+                Object.values(maintenanceData).flatMap(brandData => 
+                    Object.keys(brandData.categories)
+                )
+            )).map(category => ({
+                text: category,
+                nextId: `department_any_${category}`
+            })),
+            { text: "Skip (Any Category)", nextId: "department_any_any" },
+            { text: "Back to brands", nextId: "brand" }
+        ]
+    };
 
     // Create category nodes for each brand
     Object.entries(maintenanceData).forEach(([brand, brandData]) => {
         chatbotScript[`category_${brand}`] = {
             id: `category_${brand}`,
-            message: `Please select a category from ${brand}:`,
+            message: `Please select a category from ${brand} (or skip to continue):`,
             options: Object.keys(brandData.categories).map(category => ({
                 text: category,
                 nextId: `department_${brand}_${category}`
-            })).concat({ text: "Back to brands", nextId: "brand" })
+            })).concat([
+                { text: "Skip (Any Category)", nextId: `department_${brand}_any` },
+                { text: "Back to brands", nextId: "brand" }
+            ])
+        };
+
+        // Create department node when category is skipped for a specific brand
+        chatbotScript[`department_${brand}_any`] = {
+            id: `department_${brand}_any`,
+            message: `Please select a department (or skip to continue):`,
+            options: [
+                ...Array.from(new Set(
+                    Object.values(brandData.categories).flatMap(categoryData =>
+                        Object.keys(categoryData.departments)
+                    )
+                )).map(department => ({
+                    text: department,
+                    nextId: `subdepartment_${brand}_any_${department}`
+                })),
+                { text: "Skip (Any Department)", nextId: `subdepartment_${brand}_any_any` },
+                { text: "Back to categories", nextId: `category_${brand}` }
+            ]
         };
 
         // Create department nodes for each category
         Object.entries(brandData.categories).forEach(([category, categoryData]) => {
             chatbotScript[`department_${brand}_${category}`] = {
                 id: `department_${brand}_${category}`,
-                message: `Please select a department for ${category}:`,
+                message: `Please select a department for ${category} (or skip to continue):`,
                 options: Object.keys(categoryData.departments).map(department => ({
                     text: department,
                     nextId: `subdepartment_${brand}_${category}_${department}`
-                })).concat({ text: "Back to categories", nextId: `category_${brand}` })
+                })).concat([
+                    { text: "Skip (Any Department)", nextId: `subdepartment_${brand}_${category}_any` },
+                    { text: "Back to categories", nextId: `category_${brand}` }
+                ])
+            };
+
+            // Create subdepartment node when department is skipped for a specific category
+            chatbotScript[`subdepartment_${brand}_${category}_any`] = {
+                id: `subdepartment_${brand}_${category}_any`,
+                message: `Select a sub-department (or skip to continue):`,
+                options: [
+                    ...Array.from(new Set(
+                        Object.values(categoryData.departments).flatMap(departmentData =>
+                            departmentData.subDepartments
+                        )
+                    )).map(subDepartment => ({
+                        text: subDepartment,
+                        nextId: "datepicker"
+                    })),
+                    { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                    { text: "Back to departments", nextId: `department_${brand}_${category}` }
+                ]
             };
 
             // Create subdepartment nodes for each department
             Object.entries(categoryData.departments).forEach(([department, departmentData]) => {
                 chatbotScript[`subdepartment_${brand}_${category}_${department}`] = {
                     id: `subdepartment_${brand}_${category}_${department}`,
-                    message: `Select a sub-department for ${department}:`,
+                    message: `Select a sub-department for ${department} (or skip to continue):`,
                     options: departmentData.subDepartments.map(subDepartment => ({
                         text: subDepartment,
                         nextId: "datepicker"
-                    })).concat({ text: "Back to departments", nextId: `department_${brand}_${category}` })
+                    })).concat([
+                        { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                        { text: "Back to departments", nextId: `department_${brand}_${category}` }
+                    ])
                 };
             });
         });
+    });
+
+    // Create "any" department node when both brand and category are skipped
+    chatbotScript.department_any_any = {
+        id: 'department_any_any',
+        message: 'Please select a department (or skip to continue):',
+        options: [
+            ...Array.from(new Set(
+                Object.values(maintenanceData).flatMap(brandData =>
+                    Object.values(brandData.categories).flatMap(categoryData =>
+                        Object.keys(categoryData.departments)
+                    )
+                )
+            )).map(department => ({
+                text: department,
+                nextId: `subdepartment_any_any_${department}`
+            })),
+            { text: "Skip (Any Department)", nextId: "subdepartment_any_any_any" },
+            { text: "Back to categories", nextId: "category_any" }
+        ]
+    };
+
+    // Create subdepartment nodes for when category is skipped
+    Object.values(maintenanceData).forEach(brandData => {
+        Object.entries(brandData.categories).forEach(([category, categoryData]) => {
+            const categoryKey = `department_any_${category}`;
+            if (!chatbotScript[categoryKey]) {
+                chatbotScript[categoryKey] = {
+                    id: categoryKey,
+                    message: `Please select a department for ${category} (or skip to continue):`,
+                    options: Object.keys(categoryData.departments).map(department => ({
+                        text: department,
+                        nextId: `subdepartment_any_${category}_${department}`
+                    })).concat([
+                        { text: "Skip (Any Department)", nextId: `subdepartment_any_${category}_any` },
+                        { text: "Back to categories", nextId: "category_any" }
+                    ])
+                };
+            }
+
+            // Create subdepartment nodes for each department when category is specified but brand is not
+            Object.entries(categoryData.departments).forEach(([department, departmentData]) => {
+                const subDeptKey = `subdepartment_any_${category}_${department}`;
+                if (!chatbotScript[subDeptKey]) {
+                    chatbotScript[subDeptKey] = {
+                        id: subDeptKey,
+                        message: `Select a sub-department for ${department} (or skip to continue):`,
+                        options: departmentData.subDepartments.map(subDepartment => ({
+                            text: subDepartment,
+                            nextId: "datepicker"
+                        })).concat([
+                            { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                            { text: "Back to departments", nextId: `department_any_${category}` }
+                        ])
+                    };
+                }
+            });
+
+            // Create subdepartment node when department is skipped
+            const skipSubDeptKey = `subdepartment_any_${category}_any`;
+            if (!chatbotScript[skipSubDeptKey]) {
+                chatbotScript[skipSubDeptKey] = {
+                    id: skipSubDeptKey,
+                    message: `Select a sub-department (or skip to continue):`,
+                    options: [
+                        ...Array.from(new Set(
+                            Object.values(categoryData.departments).flatMap(departmentData =>
+                                departmentData.subDepartments
+                            )
+                        )).map(subDepartment => ({
+                            text: subDepartment,
+                            nextId: "datepicker"
+                        })),
+                        { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                        { text: "Back to departments", nextId: `department_any_${category}` }
+                    ]
+                };
+            }
+        });
+    });
+
+    // Create subdepartment nodes for when both brand and category are skipped
+    Array.from(new Set(
+        Object.values(maintenanceData).flatMap(brandData =>
+            Object.values(brandData.categories).flatMap(categoryData =>
+                Object.keys(categoryData.departments)
+            )
+        )
+    )).forEach(department => {
+        const subDeptKey = `subdepartment_any_any_${department}`;
+        chatbotScript[subDeptKey] = {
+            id: subDeptKey,
+            message: `Select a sub-department for ${department} (or skip to continue):`,
+            options: [
+                ...Array.from(new Set(
+                    Object.values(maintenanceData).flatMap(brandData =>
+                        Object.values(brandData.categories).flatMap(categoryData =>
+                            categoryData.departments[department]?.subDepartments || []
+                        )
+                    )
+                )).map(subDepartment => ({
+                    text: subDepartment,
+                    nextId: "datepicker"
+                })),
+                { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                { text: "Back to departments", nextId: "department_any_any" }
+            ]
+        };
+    });
+
+    // Create subdepartment node when all previous selections are skipped
+    chatbotScript.subdepartment_any_any_any = {
+        id: 'subdepartment_any_any_any',
+        message: 'Select a sub-department (or skip to continue):',
+        options: [
+            ...Array.from(new Set(
+                Object.values(maintenanceData).flatMap(brandData =>
+                    Object.values(brandData.categories).flatMap(categoryData =>
+                        Object.values(categoryData.departments).flatMap(departmentData =>
+                            departmentData.subDepartments
+                        )
+                    )
+                )
+            )).map(subDepartment => ({
+                text: subDepartment,
+                nextId: "datepicker"
+            })),
+            { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+            { text: "Back to departments", nextId: "department_any_any" }
+        ]
+    };
+
+    // Create subdepartment nodes for brand + any category + specific department
+    Object.entries(maintenanceData).forEach(([brand, brandData]) => {
+        Array.from(new Set(
+            Object.values(brandData.categories).flatMap(categoryData =>
+                Object.keys(categoryData.departments)
+            )
+        )).forEach(department => {
+            const subDeptKey = `subdepartment_${brand}_any_${department}`;
+            chatbotScript[subDeptKey] = {
+                id: subDeptKey,
+                message: `Select a sub-department for ${department} (or skip to continue):`,
+                options: [
+                    ...Array.from(new Set(
+                        Object.values(brandData.categories).flatMap(categoryData =>
+                            categoryData.departments[department]?.subDepartments || []
+                        )
+                    )).map(subDepartment => ({
+                        text: subDepartment,
+                        nextId: "datepicker"
+                    })),
+                    { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                    { text: "Back to departments", nextId: `department_${brand}_any` }
+                ]
+            };
+        });
+
+        // Create subdepartment node when both category and department are skipped for a brand
+        chatbotScript[`subdepartment_${brand}_any_any`] = {
+            id: `subdepartment_${brand}_any_any`,
+            message: `Select a sub-department (or skip to continue):`,
+            options: [
+                ...Array.from(new Set(
+                    Object.values(brandData.categories).flatMap(categoryData =>
+                        Object.values(categoryData.departments).flatMap(departmentData =>
+                            departmentData.subDepartments
+                        )
+                    )
+                )).map(subDepartment => ({
+                    text: subDepartment,
+                    nextId: "datepicker"
+                })),
+                { text: "Skip (Any Sub-Department)", nextId: "datepicker" },
+                { text: "Back to departments", nextId: `department_${brand}_any` }
+            ]
+        };
     });
 
     // Add result node to show selection summary
@@ -95,12 +345,14 @@ export const updateChatbotScript = () => {
                 return "Error: No selection data available";
             }
             return `Your selections:
+            
 Target Release Date: ${selection.date}
-Number of Designs: ${selection.numBaseDesigns || 'Not specified'}
-Brand: ${selection.brand}
-Category: ${selection.category}
-Department: ${selection.department}
-Sub-Department: ${selection.subDepartment}
+Number of Base Designs: ${selection.numBaseDesigns}
+Variations per Base: ${selection.numVariationsPerBase}
+Brand: ${selection.brand || 'Any'}
+Category: ${selection.category || 'Any'}
+Department: ${selection.department || 'Any'}
+Sub-Department: ${selection.subDepartment || 'Any'}
 
 What would you like to do next?`;
         },
@@ -111,8 +363,8 @@ What would you like to do next?`;
             },
             { text: "Start New Search", nextId: "brand" },
             { 
-                text: "Back to Number of Designs", 
-                nextId: "number_of_designs"
+                text: "Back to Number of Variations", 
+                nextId: "number_of_variations"
             }
         ]
     };

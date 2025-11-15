@@ -58,7 +58,7 @@ When your backend generates multiple base designs, each with their own variation
     },
     
     // Base Design 2 - Variations
-    {
+    { 
       "url": "https://example.com/image2-var1.png",
       "colorPalette": ["#3498DB", "#2980B9"],
       "variation": 1,
