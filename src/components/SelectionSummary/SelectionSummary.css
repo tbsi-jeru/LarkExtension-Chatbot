@@ -1,0 +1,108 @@
+.selection-summary-wrapper {
+  position: relative;
+}
+
+.selection-summary {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  padding: 0.6rem 0.75rem 1.5rem 0.75rem;
+  margin: 0;
+  box-shadow: 0 1px 4px rgba(55, 165, 51, 0.2);
+  animation: slideDown 0.3s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-toggle-btn {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  color: white;
+  padding: 0.25rem 1rem;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  padding: 0.3rem 1.2rem;
+}
+
+.summary-toggle-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selection-summary-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  flex: 1;
+}
+
+.selection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0.4rem 0.7rem;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.selection-chip:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.chip-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.chip-value {
+  color: white;
+  font-weight: 700;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .selection-summary {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .selection-chip {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.7rem;
+    gap: 0.3rem;
+  }
+}
+
+/* Dark mode support */
+[data-theme="dark"] .selection-summary {
+  box-shadow: 0 1px 4px rgba(55, 165, 51, 0.3);
+}

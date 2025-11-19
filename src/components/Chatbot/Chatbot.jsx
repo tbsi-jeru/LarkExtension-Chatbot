@@ -4,9 +4,14 @@ import { generateDesign, tweakDesign, postDesign } from '../../api/maintenanceEn
 import Message from './../Message/Message';
 import DatePickerMessage from './../DatePickerMessage/DatePickerMessage';
 import NumberInputMessage from './../NumberInputMessage/NumberInputMessage';
+import TableMessage from './../TableMessage/TableMessage';
 import OptionButton from './../OptionButton/OptionButton';
 import ThemeToggle from './../ThemeToggle/ThemeToggle';
 import TypingIndicator from './../TypingIndicator/TypingIndicator';
+import ScrollToBottom from './../ScrollToBottom/ScrollToBottom';
+import ConfirmDialog from './../ConfirmDialog/ConfirmDialog';
+import Toast from './../Toast/Toast';
+import SelectionSummary from './../SelectionSummary/SelectionSummary';
 import './Chatbot.css';
 
 const Chatbot = () => {
@@ -29,31 +34,58 @@ const Chatbot = () => {
     numVariationsPerBase: null
   }); 
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const [showSelectionSummary, setShowSelectionSummary] = useState(true);
+
+  const showToast = (message, type = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleResetClick = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const confirmReset = () => {
+    resetConversation();
+    setShowConfirmDialog(false);
+    showToast('Conversation cleared', 'info');
+  };
 
   const handleOptionClick = async (option) => {
     // Update selection based on the current script ID
     const updateSelection = () => {
       if (currentScriptId === 'brand') {
         if (option.text.startsWith('Skip')) {
-          setCurrentSelection(prev => ({ ...prev, brand: null }));
+          setCurrentSelection(prev => ({ ...prev, brand: 'Any' }));
         } else {
           setCurrentSelection(prev => ({ ...prev, brand: option.text }));
         }
       } else if (currentScriptId.startsWith('category_')) {
         if (option.text.startsWith('Skip')) {
-          setCurrentSelection(prev => ({ ...prev, category: null }));
+          setCurrentSelection(prev => ({ ...prev, category: 'Any' }));
         } else {
           setCurrentSelection(prev => ({ ...prev, category: option.text }));
         }
       } else if (currentScriptId.startsWith('department_')) {
         if (option.text.startsWith('Skip')) {
-          setCurrentSelection(prev => ({ ...prev, department: null }));
+          setCurrentSelection(prev => ({ ...prev, department: 'Any' }));
         } else {
           setCurrentSelection(prev => ({ ...prev, department: option.text }));
         }
       } else if (currentScriptId.startsWith('subdepartment_')) {
         if (option.text.startsWith('Skip')) {
-          setCurrentSelection(prev => ({ ...prev, subDepartment: null }));
+          setCurrentSelection(prev => ({ ...prev, subDepartment: 'Any' }));
         } else {
           setCurrentSelection(prev => ({ ...prev, subDepartment: option.text }));
         }
@@ -313,6 +345,8 @@ const Chatbot = () => {
         
         // Mark this specific image as added to Lark
         setAddedToLarkImages(prev => new Set([...prev, currentViewedImageUrl]));
+        
+        showToast('Design added to Lark successfully!', 'success');
         
         // Stay on design_complete screen
       } catch (error) {
@@ -627,27 +661,45 @@ const Chatbot = () => {
         <h2>DeeDee Assistant</h2>
         <div className="header-controls">
           <ThemeToggle />
-          <button onClick={resetConversation} className="reset-button">
+          <button onClick={handleResetClick} className="reset-button">
             Clear
           </button>
         </div>
       </div>
       
-      <div className="chatbot-messages">
-        {conversationHistory.map((entry, index) => (
-          <Message
-            key={index}
-            type={entry.type}
-            message={entry.message}
-            timestamp={entry.timestamp}
-            imageUrl={entry.imageUrl}
-            imageUrls={entry.imageUrls}
-            imageMetadata={entry.imageMetadata}
-            designs={entry.designs}
-            onEditImage={entry.imageUrls || entry.designs ? handleEditImage : null}
-            onImageChange={entry.imageUrls || entry.designs ? handleImageChange : null}
-          />
-        ))}
+      {/* Selection Summary - Always visible */}
+      <SelectionSummary 
+        currentSelection={currentSelection} 
+        isVisible={showSelectionSummary}
+        onToggle={() => setShowSelectionSummary(!showSelectionSummary)}
+      />
+      
+      <div className="chatbot-messages" ref={messagesContainerRef}>
+        {conversationHistory.map((entry, index) => {
+          // Check if message is a table object
+          if (entry.message && typeof entry.message === 'object' && entry.message.type === 'table') {
+            return (
+              <div key={index} className="message-wrapper bot-message-wrapper">
+                <TableMessage data={entry.message.data} prompt={entry.message.prompt} />
+              </div>
+            );
+          }
+          
+          return (
+            <Message
+              key={index}
+              type={entry.type}
+              message={entry.message}
+              timestamp={entry.timestamp}
+              imageUrl={entry.imageUrl}
+              imageUrls={entry.imageUrls}
+              imageMetadata={entry.imageMetadata}
+              designs={entry.designs}
+              onEditImage={entry.imageUrls || entry.designs ? handleEditImage : null}
+              onImageChange={entry.imageUrls || entry.designs ? handleImageChange : null}
+            />
+          );
+        })}
         
         {/* Current bot message */}
         {!isLoading && (
@@ -665,11 +717,28 @@ const Chatbot = () => {
               />
             ) : (
               <>
-                <Message
-                  type="bot"
-                  message={typeof currentScript.message === 'function' ? currentScript.message(currentSelection) : currentScript.message}
-                  timestamp={new Date()}
-                />
+                {(() => {
+                  const messageContent = typeof currentScript.message === 'function' 
+                    ? currentScript.message(currentSelection) 
+                    : currentScript.message;
+                  
+                  // Check if message is a table object
+                  if (messageContent && typeof messageContent === 'object' && messageContent.type === 'table') {
+                    return (
+                      <div className="message-wrapper bot-message-wrapper">
+                        <TableMessage data={messageContent.data} prompt={messageContent.prompt} />
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <Message
+                      type="bot"
+                      message={messageContent}
+                      timestamp={new Date()}
+                    />
+                  );
+                })()}
                 
                 {/* Options displayed inside chat */}
                 {currentScript.options && (
@@ -696,7 +765,34 @@ const Chatbot = () => {
         
         {/* Invisible element to scroll to */}
         <div ref={messagesEndRef} />
+        
+        {/* Scroll to bottom button */}
+        <ScrollToBottom 
+          messagesContainerRef={messagesContainerRef}
+          onClick={scrollToBottom}
+        />
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        title="Clear Conversation?"
+        message="Are you sure you want to clear the entire conversation? This action cannot be undone."
+        confirmText="Clear"
+        cancelText="Cancel"
+        onConfirm={confirmReset}
+        onCancel={() => setShowConfirmDialog(false)}
+      />
+
+      {/* Toast Notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
     </div>
   );
 };

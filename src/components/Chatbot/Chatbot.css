@@ -50,6 +50,7 @@
   padding: 1rem;
   padding-bottom: 2rem;
   background: var(--bg-primary);
+  position: relative;
 }
 
 .chatbot-options-inline {

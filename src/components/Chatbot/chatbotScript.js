@@ -344,17 +344,19 @@ export const updateChatbotScript = () => {
             if (!selection) {
                 return "Error: No selection data available";
             }
-            return `Your selections:
-            
-Target Release Date: ${selection.date}
-Number of Base Designs: ${selection.numBaseDesigns}
-Variations per Base: ${selection.numVariationsPerBase}
-Brand: ${selection.brand || 'Any'}
-Category: ${selection.category || 'Any'}
-Department: ${selection.department || 'Any'}
-Sub-Department: ${selection.subDepartment || 'Any'}
-
-What would you like to do next?`;
+            return {
+                type: 'table',
+                data: [
+                    { label: 'Target Release Date', value: selection.date },
+                    { label: 'Number of Base Designs', value: selection.numBaseDesigns },
+                    { label: 'Variations per Base', value: selection.numVariationsPerBase },
+                    { label: 'Brand', value: selection.brand || 'Any' },
+                    { label: 'Category', value: selection.category || 'Any' },
+                    { label: 'Department', value: selection.department || 'Any' },
+                    { label: 'Sub-Department', value: selection.subDepartment || 'Any' }
+                ],
+                prompt: 'What would you like to do next?'
+            };
         },
         options: [
             { 
