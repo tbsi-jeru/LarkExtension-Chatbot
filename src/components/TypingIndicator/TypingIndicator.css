@@ -1,0 +1,69 @@
+.typing-indicator-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.typing-indicator-content {
+  max-width: 85%;
+  padding: 0.75rem 1rem;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  background: var(--bot-message-bg, #f0f0f0);
+  color: var(--bot-message-text, #333);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary, #37A533);
+  animation: typing 1.4s infinite ease-in-out;
+  opacity: 0.6;
+}
+
+.dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.typing-message {
+  font-size: 14px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .typing-indicator-content {
+  --bot-message-bg: #2c2c2c;
+  --bot-message-text: #e0e0e0;
+}

@@ -6,6 +6,7 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editInstructions, setEditInstructions] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Reset carousel when switching tabs ONLY
   useEffect(() => {
@@ -68,6 +69,14 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
     });
   };
 
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
   const handleEditClick = () => {
     setIsEditMode(true);
   };
@@ -75,6 +84,12 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
   const handleCancelEdit = () => {
     setIsEditMode(false);
     setEditInstructions('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
   };
 
   const handleSubmitEdit = () => {
@@ -104,8 +119,8 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
             className={`design-tab ${activeTabIndex === index ? 'active' : ''}`}
             onClick={() => setActiveTabIndex(index)}
           >
-            Design {index + 1}
-            {/* <span className="variation-count">({design.variations?.length || 0} variations)</span> */}
+            <span className="tab-label">Design {index + 1}</span>
+            <span className="tab-badge">{design.variations?.length || 0}</span>
           </button>
         ))}
       </div>
@@ -120,6 +135,7 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
                 src={variations[currentCarouselIndex].url} 
                 alt={`Base Design ${activeTabIndex + 1} - Variation ${currentCarouselIndex + 1}`}
                 className="carousel-main-image"
+                onClick={openModal}
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><text x="50%" y="50%" text-anchor="middle" fill="gray">Image failed to load</text></svg>';
@@ -200,6 +216,45 @@ const DesignTabs = ({ designs, onEditImage, onImageChange }) => {
           <div className="no-variations">No variations available for this design</div>
         )}
       </div>
+
+      {/* Image Modal */}
+      {isModalOpen && (
+        <div className="image-modal" onClick={closeModal} onKeyDown={handleKeyDown} tabIndex={0}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={closeModal}>
+              ×
+            </button>
+            
+            <img 
+              src={variations[currentCarouselIndex].url} 
+              alt={`Base Design ${activeTabIndex + 1} - Variation ${currentCarouselIndex + 1} - Full size`}
+              className="image-modal-img"
+            />
+            
+            <div className="image-modal-info">
+              Design {activeTabIndex + 1} - Variation {currentCarouselIndex + 1} / {variations.length}
+            </div>
+
+            <div className="image-modal-actions">
+              <a 
+                href={variations[currentCarouselIndex].url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="image-modal-button"
+              >
+                Open in New Tab
+              </a>
+              <a 
+                href={variations[currentCarouselIndex].url} 
+                download={`design-${activeTabIndex + 1}-variation-${currentCarouselIndex + 1}.png`}
+                className="image-modal-button"
+              >
+                Download
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

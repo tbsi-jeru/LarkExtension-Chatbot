@@ -6,6 +6,7 @@ import DatePickerMessage from './../DatePickerMessage/DatePickerMessage';
 import NumberInputMessage from './../NumberInputMessage/NumberInputMessage';
 import OptionButton from './../OptionButton/OptionButton';
 import ThemeToggle from './../ThemeToggle/ThemeToggle';
+import TypingIndicator from './../TypingIndicator/TypingIndicator';
 import './Chatbot.css';
 
 const Chatbot = () => {
@@ -13,6 +14,7 @@ const Chatbot = () => {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [currentViewedImageUrl, setCurrentViewedImageUrl] = useState(null);
   const [currentDesignContext, setCurrentDesignContext] = useState(null); // { baseDesignIndex, variationIndex }
   const [currentDesignMetadata, setCurrentDesignMetadata] = useState(null); // Store metadata from API response
@@ -96,6 +98,12 @@ const Chatbot = () => {
     // Handle Generate Design action
     if (option.text === "Generate Design" || option.text === "Generate Design Again") {
       setIsLoading(true);
+      setLoadingMessage('🎨 Analyzing your preferences...');
+      
+      // Simulate loading phases for better UX
+      setTimeout(() => setLoadingMessage('🤖 AI is crafting your design...'), 2000);
+      setTimeout(() => setLoadingMessage('✨ Adding final touches...'), 8000);
+      
       try {
         // Get brand description
         const brandDescription = getBrandDescription(currentSelection.brand);
@@ -212,6 +220,7 @@ const Chatbot = () => {
         setCurrentScriptId('design_complete');
         // Don't reset addedToLarkImages when generating new designs
       } catch (error) {
+        setLoadingMessage('');
         console.error('Error generating design:', error);
         
         // Determine error message based on error type
@@ -240,10 +249,12 @@ const Chatbot = () => {
         setCurrentScriptId('design_error');
       } finally {
         setIsLoading(false);
+        setLoadingMessage('');
       }
     } else if (option.text === "Add to Lark") {
       // Handle Add to Lark action
       setIsLoading(true);
+      setLoadingMessage('📤 Uploading design to Lark...');
       try {
         // Find dominant color for the currently viewed image
         let dominantColor = null;
@@ -329,14 +340,22 @@ const Chatbot = () => {
         ]);
       } finally {
         setIsLoading(false);
+        setLoadingMessage('');
       }
     } else if (option.text === "Start New Search") {
       // Handle Start New Search - reset and restart without adding to history
       resetConversation();
     } else {
-      // Normal navigation
-      const nextId = typeof option.nextId === 'function' ? option.nextId(currentSelection) : option.nextId;
-      setCurrentScriptId(nextId);
+      // Normal navigation - show brief typing indicator
+      setIsLoading(true);
+      setLoadingMessage('');
+      
+      // Simulate brief "thinking" delay for better UX
+      setTimeout(() => {
+        const nextId = typeof option.nextId === 'function' ? option.nextId(currentSelection) : option.nextId;
+        setCurrentScriptId(nextId);
+        setIsLoading(false);
+      }, 600);
     }
   };
 
@@ -362,8 +381,14 @@ const Chatbot = () => {
 
     setConversationHistory(newHistory);
 
-    // Move to the next step (number of designs)
-    setCurrentScriptId(currentScript.nextId);
+    // Show brief typing indicator
+    setIsLoading(true);
+    setLoadingMessage('');
+    
+    setTimeout(() => {
+      setCurrentScriptId(currentScript.nextId);
+      setIsLoading(false);
+    }, 600);
   };
 
   const handleNumberSubmit = (number) => {
@@ -412,12 +437,19 @@ const Chatbot = () => {
       setConversationHistory(newHistory);
     }
 
-    // Move to the next step
-    setCurrentScriptId(currentScript.nextId);
+    // Show brief typing indicator
+    setIsLoading(true);
+    setLoadingMessage('');
+    
+    setTimeout(() => {
+      setCurrentScriptId(currentScript.nextId);
+      setIsLoading(false);
+    }, 600);
   };
 
   const handleEditImage = async (editData) => {
     setIsLoading(true);
+    setLoadingMessage('✏️ AI is editing your design...');
 
     try {
       // Prepare tweak request data
@@ -544,6 +576,7 @@ const Chatbot = () => {
       ]);
     } finally {
       setIsLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -658,11 +691,7 @@ const Chatbot = () => {
         
         {/* Loading indicator */}
         {isLoading && (
-          <Message
-            type="bot"
-            message="🎨 Generating your design... This may take up to 2 minutes. Please wait."
-            timestamp={new Date()}
-          />
+          <TypingIndicator message={loadingMessage} />
         )}
         
         {/* Invisible element to scroll to */}

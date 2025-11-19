@@ -38,7 +38,7 @@
 }
 
 .user-message .message-content {
-  background: var(--user-message-bg, #007bff);
+  background: var(--accent-primary, #37A533);
   color: var(--user-message-text, #fff);
   border-bottom-right-radius: 4px;
 }
@@ -612,8 +612,7 @@
 }
 
 [data-theme="dark"] .user-message .message-content {
-  --user-message-bg: #0056b3;
-  --user-message-text: #fff;
+  background: var(--accent-secondary, #1E651C);
 }
 
 [data-theme="dark"] .message-image-container {
