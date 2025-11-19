@@ -6,7 +6,7 @@ const DatePickerMessage = ({ onDateSelect }) => {
     <div className="datepicker-message-container">
       <div className="datepicker-message">
         <p className="datepicker-message-text">
-          Please select a date for your maintenance schedule:
+          When do you plan to release the new designs?
         </p>
         <DatePicker onDateSelect={onDateSelect} />
       </div>
