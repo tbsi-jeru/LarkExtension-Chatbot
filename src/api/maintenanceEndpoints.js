@@ -10,6 +10,16 @@ export const postDesign = async (selectionData) => {
     }
 };
 
+export const postMultipleDesigns = async (variationsData) => {
+    try {
+        const response = await apiClient.post('/lark/upload-batch', variationsData);
+        return response;
+    } catch (error) {
+        console.error('Error posting multiple designs to Lark:', error);
+        throw error;
+    }
+};
+
 export const generateDesign = async (selectionData) => {
     try {
         const response = await apiClient.post('/ai/ai-generateImage', selectionData);

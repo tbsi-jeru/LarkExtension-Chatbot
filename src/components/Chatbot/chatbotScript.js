@@ -377,7 +377,8 @@ export const updateChatbotScript = () => {
         message: "What would you like to do next?",
         options: [
             { text: "Start New Search", nextId: "brand" },
-            { text: "Add to Lark", nextId: "brand" },
+            { text: "Add Variation to Lark", nextId: "brand" },
+            { text: "Add Multiple to Lark", nextId: "brand" },
         ]
     };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { chatbotScript, getScriptById, initializeMaintenanceData, getBrandDescription } from './chatbotScript';
-import { generateDesign, tweakDesign, postDesign } from '../../api/maintenanceEndpoints';
+import { generateDesign, tweakDesign, postDesign, postMultipleDesigns } from '../../api/maintenanceEndpoints';
 import Message from './../Message/Message';
 import DatePickerMessage from './../DatePickerMessage/DatePickerMessage';
 import NumberInputMessage from './../NumberInputMessage/NumberInputMessage';
@@ -12,6 +12,7 @@ import ScrollToBottom from './../ScrollToBottom/ScrollToBottom';
 import ConfirmDialog from './../ConfirmDialog/ConfirmDialog';
 import Toast from './../Toast/Toast';
 import SelectionSummary from './../SelectionSummary/SelectionSummary';
+import VariationSelectionModal from './../VariationSelectionModal/VariationSelectionModal';
 import './Chatbot.css';
 
 const Chatbot = () => {
@@ -38,10 +39,126 @@ const Chatbot = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [showSelectionSummary, setShowSelectionSummary] = useState(true);
+  const [showVariationModal, setShowVariationModal] = useState(false);
+  const [availableVariations, setAvailableVariations] = useState([]);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message, type = 'info') => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const handleVariationSubmit = async (selectedVariations) => {
+    setShowVariationModal(false);
+    setIsLoading(true);
+    setLoadingMessage(`📤 Uploading ${selectedVariations.length} variation(s) to Lark...`);
+    
+    try {
+      // Prepare variations array with metadata
+      const variations = selectedVariations.map(img => {
+        const variationData = {
+          imageUrl: img.url,
+          dominantColor: img.dominantColor,
+          baseDesignNumber: img.baseDesignNumber,
+          variationNumber: img.variationNumber,
+          baseDesignDescription: img.baseDesignDescription
+        };
+        
+        // Add metadata from currentDesignMetadata or currentSelection
+        if (currentDesignMetadata) {
+          variationData.targetReleaseDate = currentDesignMetadata.targetReleaseDate;
+          variationData.brand = currentDesignMetadata.brand;
+          variationData.brandDescription = currentDesignMetadata.brandDescription;
+          variationData.category = currentDesignMetadata.category;
+          variationData.department = currentDesignMetadata.department;
+          variationData.subDepartment = currentDesignMetadata.subDepartment;
+        } else {
+          const brandDescription = getBrandDescription(currentSelection.brand);
+          variationData.targetReleaseDate = currentSelection.date;
+          variationData.brand = currentSelection.brand;
+          variationData.brandDescription = brandDescription;
+          variationData.category = currentSelection.category;
+          variationData.department = currentSelection.department;
+          variationData.subDepartment = currentSelection.subDepartment;
+        }
+        
+        return variationData;
+      });
+      
+      console.log('Sending batch data to Lark:', JSON.stringify({ variations: variations.length }, null, 2));
+      
+      // Call batch upload API
+      const batchResult = await postMultipleDesigns({ variations });
+      
+      console.log('Batch upload result:', batchResult);
+
+      // Support apiClient interceptors that return `response.data` directly
+      const resultData = batchResult?.data ?? batchResult;
+
+      // Mark all successfully uploaded images as added to Lark
+      if (resultData && resultData.results) {
+        const successfulUrls = resultData.results
+          .filter(r => r.success)
+          .map((r) => variations[r.variationIndex]?.imageUrl)
+          .filter(url => url);
+        
+        setAddedToLarkImages(prev => {
+          const updated = new Set(prev);
+          successfulUrls.forEach(url => updated.add(url));
+          return updated;
+        });
+      }
+      
+      // Show success/partial success message
+      const succeeded = (resultData && (resultData.succeeded || 0)) || 0;
+      const failed = (resultData && (resultData.failed || 0)) || 0;
+      
+      if (failed === 0) {
+        showToast(`Successfully added ${succeeded} design(s) to Lark!`, 'success');
+      } else {
+        showToast(`Added ${succeeded} design(s) to Lark, ${failed} failed`, 'warning');
+        
+        // Add error details to conversation history
+        if (resultData && resultData.errors && resultData.errors.length > 0) {
+          const errorMessage = `Some designs failed to upload:\n${resultData.errors.map(e => 
+            `- Variation ${e.variationNumber}: ${e.error}`
+          ).join('\n')}`;
+          
+          setConversationHistory(prev => [
+            ...prev,
+            {
+              type: 'bot',
+              message: errorMessage,
+              timestamp: new Date()
+            }
+          ]);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error adding designs to Lark:', error);
+      
+      let errorMessage = 'Error adding designs to Lark: ';
+      
+      if (error.response) {
+        errorMessage += `Server responded with error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+      } else if (error.request) {
+        errorMessage += 'No response from server. Please check your internet connection.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred';
+      }
+      
+      setConversationHistory(prev => [
+        ...prev,
+        {
+          type: 'bot',
+          message: errorMessage,
+          timestamp: new Date()
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+    }
   };
 
   const removeToast = (id) => {
@@ -102,7 +219,7 @@ const Chatbot = () => {
     }
 
     // Special actions that should not add messages to history
-    const silentActions = ["Add to Lark", "Generate Design", "Generate Design Again", "Start New Search"];
+    const silentActions = ["Add Variation to Lark", "Add Multiple to Lark", "Generate Design", "Generate Design Again", "Start New Search"];
     const isSilentAction = silentActions.includes(option.text);
 
     // Add current message and user's choice to history (unless it's a silent action)
@@ -283,7 +400,7 @@ const Chatbot = () => {
         setIsLoading(false);
         setLoadingMessage('');
       }
-    } else if (option.text === "Add to Lark") {
+    } else if (option.text === "Add Variation to Lark") {
       // Handle Add to Lark action
       setIsLoading(true);
       setLoadingMessage('📤 Uploading design to Lark...');
@@ -376,6 +493,36 @@ const Chatbot = () => {
         setIsLoading(false);
         setLoadingMessage('');
       }
+    } else if (option.text === "Add Multiple to Lark") {
+      // Handle Add All to Lark action - open selection modal
+      // Find all image metadata from conversation history
+      let allImageMetadata = [];
+      
+      for (let i = conversationHistory.length - 1; i >= 0; i--) {
+        const entry = conversationHistory[i];
+        if (entry.imageMetadata && Array.isArray(entry.imageMetadata)) {
+          allImageMetadata = entry.imageMetadata;
+          console.log(`Found ${allImageMetadata.length} images for selection`);
+          break;
+        }
+      }
+      
+      if (allImageMetadata.length === 0) {
+        showToast('No images found to upload', 'error');
+        return;
+      }
+      
+      // Check if all are already uploaded
+      const availableToUpload = allImageMetadata.filter(img => !addedToLarkImages.has(img.url));
+      
+      if (availableToUpload.length === 0) {
+        showToast('All images have already been added to Lark!', 'info');
+        return;
+      }
+      
+      // Set available variations and open modal
+      setAvailableVariations(allImageMetadata);
+      setShowVariationModal(true);
     } else if (option.text === "Start New Search") {
       // Handle Start New Search - reset and restart without adding to history
       resetConversation();
@@ -793,6 +940,15 @@ const Chatbot = () => {
           onClose={() => removeToast(toast.id)}
         />
       ))}
+
+      {/* Variation Selection Modal */}
+      <VariationSelectionModal
+        isOpen={showVariationModal}
+        onClose={() => setShowVariationModal(false)}
+        onSubmit={handleVariationSubmit}
+        variations={availableVariations}
+        addedToLarkImages={addedToLarkImages}
+      />
     </div>
   );
 };
