@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import './VariationSelectionModal.css';
 
 const VariationSelectionModal = ({ isOpen, onClose, onSubmit, variations, addedToLarkImages }) => {
+  // Canonicalize URL to compare against stored Set keys
+  const canonicalUrl = (url) => {
+    try {
+      const u = new URL(url);
+      return `${u.origin}${u.pathname}`;
+    } catch (e) {
+      return url;
+    }
+  };
   const [selectedVariations, setSelectedVariations] = useState(new Set());
 
   // Initialize with all non-uploaded variations selected
@@ -9,7 +18,7 @@ const VariationSelectionModal = ({ isOpen, onClose, onSubmit, variations, addedT
     if (isOpen && variations) {
       const availableVariations = variations
         .map((v, idx) => idx)
-        .filter(idx => !addedToLarkImages.has(variations[idx].url));
+        .filter(idx => !addedToLarkImages.has(canonicalUrl(variations[idx].url)));
       setSelectedVariations(new Set(availableVariations));
     }
   }, [isOpen, variations, addedToLarkImages]);
@@ -18,7 +27,7 @@ const VariationSelectionModal = ({ isOpen, onClose, onSubmit, variations, addedT
 
   const toggleVariation = (index) => {
     // Don't allow toggling already uploaded images
-    if (addedToLarkImages.has(variations[index].url)) {
+    if (addedToLarkImages.has(canonicalUrl(variations[index].url))) {
       return;
     }
 
@@ -41,7 +50,7 @@ const VariationSelectionModal = ({ isOpen, onClose, onSubmit, variations, addedT
       // Select all available (non-uploaded)
       const allAvailable = variations
         .map((v, idx) => idx)
-        .filter(idx => !addedToLarkImages.has(variations[idx].url));
+        .filter(idx => !addedToLarkImages.has(canonicalUrl(variations[idx].url)));
       setSelectedVariations(new Set(allAvailable));
     }
   };
@@ -88,7 +97,7 @@ const VariationSelectionModal = ({ isOpen, onClose, onSubmit, variations, addedT
 
         <div className="variation-modal-grid">
           {variations.map((variation, index) => {
-            const isAlreadyUploaded = addedToLarkImages.has(variation.url);
+            const isAlreadyUploaded = addedToLarkImages.has(canonicalUrl(variation.url));
             const isSelected = selectedVariations.has(index);
 
             return (

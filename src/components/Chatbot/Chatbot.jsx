@@ -16,6 +16,15 @@ import VariationSelectionModal from './../VariationSelectionModal/VariationSelec
 import './Chatbot.css';
 
 const Chatbot = () => {
+  // Helper: canonicalize image URL to a stable key (origin + pathname)
+  const canonicalImageUrl = (url) => {
+    try {
+      const u = new URL(url);
+      return `${u.origin}${u.pathname}`;
+    } catch (e) {
+      return url;
+    }
+  };
   const [currentScriptId, setCurrentScriptId] = useState('brand');
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -100,10 +109,10 @@ const Chatbot = () => {
           .filter(r => r.success)
           .map((r) => variations[r.variationIndex]?.imageUrl)
           .filter(url => url);
-        
+
         setAddedToLarkImages(prev => {
           const updated = new Set(prev);
-          successfulUrls.forEach(url => updated.add(url));
+          successfulUrls.forEach(url => updated.add(canonicalImageUrl(url)));
           return updated;
         });
       }
@@ -461,7 +470,7 @@ const Chatbot = () => {
         console.log('Lark upload result:', larkResult);
         
         // Mark this specific image as added to Lark
-        setAddedToLarkImages(prev => new Set([...prev, currentViewedImageUrl]));
+        setAddedToLarkImages(prev => new Set([...Array.from(prev), canonicalImageUrl(currentViewedImageUrl)]));
         
         showToast('Design added to Lark successfully!', 'success');
         
@@ -895,7 +904,10 @@ const Chatbot = () => {
                         key={index}
                         text={option.text}
                         onClick={() => handleOptionClick(option)}
-                        disabled={option.text === "Add to Lark" && addedToLarkImages.has(currentViewedImageUrl)}
+                        disabled={
+                          (option.text === 'Add Variation to Lark' || option.text === 'Add to Lark') &&
+                          (currentViewedImageUrl ? addedToLarkImages.has(canonicalImageUrl(currentViewedImageUrl)) : false)
+                        }
                       />
                     ))}
                   </div>
